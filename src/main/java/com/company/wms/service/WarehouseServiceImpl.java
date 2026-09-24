@@ -7,12 +7,10 @@ import com.company.wms.dto.WarehouseRequest;
 import com.company.wms.dto.WarehouseResponse;
 import com.company.wms.dto.inbound.GoodsReceiptRequest;
 import com.company.wms.dto.inbound.GoodsReceiptResponse;
-import com.company.wms.event.WarehouseEventPublisher;
 import com.company.wms.exception.DuplicateResourceException;
 import com.company.wms.exception.ResourceNotFoundException;
 import com.company.wms.mapper.WarehouseMapper;
 import com.company.wms.repository.WarehouseRepository;
-import com.company.wms.service.WarehouseService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -31,16 +29,13 @@ public class WarehouseServiceImpl implements WarehouseService {
 
     private final WarehouseRepository repository;
     private final WarehouseMapper mapper;
-    private final WarehouseEventPublisher eventPublisher;
-    private final InboundServiceClient inboundServiceClient;   
+    private final InboundServiceClient inboundServiceClient;
 
     public WarehouseServiceImpl(WarehouseRepository repository,
                                 WarehouseMapper mapper,
-                                WarehouseEventPublisher eventPublisher,
                                 InboundServiceClient inboundServiceClient) {
         this.repository = repository;
         this.mapper = mapper;
-        this.eventPublisher = eventPublisher;
         this.inboundServiceClient = inboundServiceClient;
     }
 
@@ -56,10 +51,9 @@ public class WarehouseServiceImpl implements WarehouseService {
             entity.setStatus(WarehouseStatus.ACTIVE);
         }
         Warehouse saved = repository.save(entity);
-        eventPublisher.publishCreated(saved);
         log.info("Warehouse created: id={}, code={}", saved.getId(), saved.getWarehouseCode());
 
-        //  Synchronous call to inbound-service 
+        // Synchronous call to inbound-service
         notifyInbound(saved);
 
         return mapper.toResponse(saved);
@@ -110,7 +104,6 @@ public class WarehouseServiceImpl implements WarehouseService {
         }
         WarehouseStatus oldStatus = entity.getStatus();
         entity.setStatus(newStatus);
-        eventPublisher.publishStatusChanged(entity, oldStatus);
         log.info("Warehouse status changed: id={}, {} -> {}", id, oldStatus, newStatus);
         return mapper.toResponse(entity);
     }
